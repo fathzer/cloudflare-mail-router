@@ -1,0 +1,9 @@
+{
+  "name": "mail-redirections",
+  "main": "index.js",
+  "compatibility_date": "2026-11-01",
+  "kv_namespaces": [
+    // Replace with the id (not the name) of the namespace that contains the mail.redirections key
+    { "binding": "REDIRECTIONS", "id": "REPLACE_WITH_THE_KV_NAMESPACE_ID" }
+  ]
+}

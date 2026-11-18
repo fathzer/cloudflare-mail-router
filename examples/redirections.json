@@ -1,0 +1,8 @@
+{
+  "redirections": {
+    "contact@example.com": "me@gmail.com",
+    "support@example.com": ["contact@example.com", "colleague@gmail.com"],
+    "sales@example.com": "new-colleague@gmail.com"
+  },
+  "pending": ["new-colleague@gmail.com"]
+}

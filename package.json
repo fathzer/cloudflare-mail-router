@@ -1,0 +1,10 @@
+{
+  "name": "cloudflare-mail-router",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "validate": "node scripts/validate.js examples/redirections.json",
+    "test": "node --test test/*.test.js"
+  }
+}

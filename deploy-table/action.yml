@@ -1,0 +1,53 @@
+name: Deploy the redirection table
+description: >
+  Validates the table, checks that its destination addresses are verified in Cloudflare
+  (pending destinations excepted) and copies it into the Cloudflare KV key read by the worker.
+inputs:
+  api-token:
+    description: >
+      Cloudflare API token with the permissions "Workers KV Storage: Edit" and "Email Routing Addresses: Read".
+    required: true
+  account-id:
+    description: Cloudflare account id.
+    required: true
+  kv-namespace-id:
+    description: Id (32 hexadecimal characters, not the name) of the KV namespace read by the worker.
+    required: true
+  table:
+    description: Path of the redirection table, relative to the workspace.
+    default: redirections.json
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 26
+    - name: Check the namespace id
+      shell: bash
+      env:
+        KV_NAMESPACE_ID: ${{ inputs.kv-namespace-id }}
+      run: |
+        if ! [[ "$KV_NAMESPACE_ID" =~ ^[0-9a-f]{32}$ ]]; then
+          echo "kv-namespace-id must be the id (32 hexadecimal characters) of the namespace, not its name" >&2
+          exit 1
+        fi
+    - name: Validate the table and check its destinations
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        TABLE: ${{ inputs.table }}
+        CLOUDFLARE_API_TOKEN: ${{ inputs.api-token }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ inputs.account-id }}
+      run: |
+        root="$ACTION_PATH"
+        until [ -f "$root/src/redirections.js" ]; do root=$(dirname "$root"); [ "$root" != / ] || { echo "Action files not found" >&2; exit 1; }; done
+        node "$root/scripts/validate.js" "$TABLE"
+        node "$root/scripts/check-destinations.js" "$TABLE"
+    - name: Copy the table into the KV
+      shell: bash
+      env:
+        TABLE: ${{ inputs.table }}
+        KV_NAMESPACE_ID: ${{ inputs.kv-namespace-id }}
+        CLOUDFLARE_API_TOKEN: ${{ inputs.api-token }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ inputs.account-id }}
+      run: npx --yes wrangler kv key put mail.redirections --path "$TABLE" --namespace-id "$KV_NAMESPACE_ID" --remote

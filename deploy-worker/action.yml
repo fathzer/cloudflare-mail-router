@@ -1,0 +1,46 @@
+name: Deploy the mail router worker
+description: >
+  Deploys the Cloudflare email worker that forwards the mails according to the redirection table
+  stored in the KV key mail.redirections.
+inputs:
+  api-token:
+    description: >
+      Cloudflare API token with the permission "Workers Scripts: Edit".
+    required: true
+  account-id:
+    description: Cloudflare account id.
+    required: true
+  kv-namespace-id:
+    description: Id (32 hexadecimal characters, not the name) of the KV namespace that contains the table.
+    required: true
+  worker-name:
+    description: Name of the worker.
+    default: mail-redirections
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 26
+    - name: Deploy the worker
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        KV_NAMESPACE_ID: ${{ inputs.kv-namespace-id }}
+        WORKER_NAME: ${{ inputs.worker-name }}
+        CLOUDFLARE_API_TOKEN: ${{ inputs.api-token }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ inputs.account-id }}
+      run: |
+        if ! [[ "$KV_NAMESPACE_ID" =~ ^[0-9a-f]{32}$ ]]; then
+          echo "kv-namespace-id must be the id (32 hexadecimal characters) of the namespace, not its name" >&2
+          exit 1
+        fi
+        root="$ACTION_PATH"
+        until [ -f "$root/src/redirections.js" ]; do root=$(dirname "$root"); [ "$root" != / ] || { echo "Action files not found" >&2; exit 1; }; done
+        # Work on a copy: the worker imports ../src, and the namespace id is written in the configuration
+        build="$RUNNER_TEMP/mail-router-worker"
+        rm -rf "$build"
+        mkdir -p "$build"
+        cp -r "$root/worker" "$root/src" "$build/"
+        sed -i "s/REPLACE_WITH_THE_KV_NAMESPACE_ID/$KV_NAMESPACE_ID/" "$build/worker/wrangler.jsonc"
+        npx --yes wrangler deploy --config "$build/worker/wrangler.jsonc" --name "$WORKER_NAME"

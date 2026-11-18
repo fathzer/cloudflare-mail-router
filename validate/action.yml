@@ -1,0 +1,23 @@
+name: Validate the redirection table
+description: >
+  Checks a redirection table: well formed lowercase addresses, no duplicate source, no cycle,
+  no alias to a missing address, no unused pending destination.
+inputs:
+  table:
+    description: Path of the redirection table, relative to the workspace.
+    default: redirections.json
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 26
+    - name: Validate the table
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        TABLE: ${{ inputs.table }}
+      run: |
+        root="$ACTION_PATH"
+        until [ -f "$root/src/redirections.js" ]; do root=$(dirname "$root"); [ "$root" != / ] || { echo "Action files not found" >&2; exit 1; }; done
+        node "$root/scripts/validate.js" "$TABLE"
