@@ -20,7 +20,7 @@ It is meant for personal and small-scale domains, and should fit in Cloudflare's
   mail interruption is as short as possible.
 
 What this project does **not** do: it only forwards mails. It does not host mailboxes and it does not send mails, so
-answering *from* one of your addresses must be set up with your mail provider ("send as" in Gmail, for instance).
+answering *from* one of your addresses must be set up elsewhere: see [Sending mails from your addresses](docs/sending-mail.md).
 The forwarding itself is done by Cloudflare Email Routing, which is designed to keep forwarded mails passing the
 receivers' SPF, DKIM and DMARC checks (it rewrites the envelope sender and leaves the DKIM signatures intact). This is
 likely to work, but not guaranteed: how a receiving provider treats forwarded mails is out of this project's control.
